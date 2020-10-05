@@ -7,24 +7,38 @@ from .siqr import BatchSIQR
 class Epidemic(Agent):
 	# wrapper environment around BatchSIQR
 	
-	def __init__(self):
+	def __init__(self, stochastic=False, noisy=False):
+		"""
+		Mass-action SIQR epidemics model.
+		
+		Args:
+			stochastic (bool): Is the infection rate sampled from some distribution at the beginning of each episode (default: False)?
+			noisy (bool): Is the state a noisy estimate of the true state (default: False)?
+		"""
+		self.is_stochastic = stochastic
+		self.is_noisy = noisy
+		
 		# action space is set of interventions on beta
 		self.actions = np.array([1, .0175, 0.5, 0.65]) # beta coeffs
-		#self.actions = np.linspace(0, 1, num=20) # beta coeffs
 		self.action_space = gym.spaces.Discrete(self.actions.shape[0])
-		self.beta = 0.373
+		self.beta_bounds = [0.19, 0.56] # default infectivity
 		self.N = 6e8 # population size
-		self.I0= 2e4# initial infections
+		self.I0= 2e4# initial infectious and recovereds
+		self.noise_level = 0.2 # weighted average of noisy observation and true state
 		self.action_repeat = 7 # number of days between actions
-		self.steps_total = int(365/self.action_repeat) # episode length (in days)
-		self.steps = None
+		self.steps_total = int(365/self.action_repeat) # episode length
 		
 		self.env = BatchSIQR(beta='beta', N=self.N, epsilon=self.I0/self.N)
 		self.observation_space = self.env.observation_space
 		
 	def reset(self):
 		self.steps = 0
-		return self.env.reset().reshape(-1)
+		if (self.is_stochastic):
+			self.beta = self.beta_bounds[0] + np.random.uniform() * self.beta_bounds[1]
+		else:
+			self.beta = (self.beta_bounds[1] + self.beta_bounds[0])/2
+		s = self.env.reset().reshape(-1)
+		return self._observe(s)
 		
 	def step(self, action):
 		# map action to beta
@@ -36,17 +50,20 @@ class Epidemic(Agent):
 		beta = self.beta * c
 		r = 0
 		for _ in range(self.action_repeat):
-			s, _, d, i = self.env.step({'beta': beta})
+			s, _, d, info = self.env.step({'beta': beta})
 			s = s.reshape(-1)
 			r += self._reward(s/self.N, c)
 		self.steps += 1
+		
+		# corrupt observation
+		self._observe(s)
 		
 		# check done
 		if self.steps >= self.steps_total:
 			d = True
 			self.steps = None
 		
-		return s, r/self.action_repeat, d, info
+		return self._observe(s), r/self.action_repeat, d, info
 		
 	def _reward(self, s, c):
 		a = s[1] + s[2]
@@ -54,6 +71,17 @@ class Epidemic(Agent):
 		# c: policy severity
 		b = 1-c
 		return (-30*a - 30*a**2 - b - b**2)/62
+		
+	def _observe(self, s):
+		if not self.is_noisy:
+			return s
+		else:
+			noise = np.random.uniform(size=4)
+			noise = noise/np.sum(noise)
+			o = s * ((1-self.noise_level) + self.noise_level * noise)
+			o = o/np.sum(o)*self.N
+			return o
+			
 		
 		
 		
