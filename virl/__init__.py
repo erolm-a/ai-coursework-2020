@@ -7,21 +7,25 @@ from .siqr import BatchSIQR
 class Epidemic(Agent):
 	# wrapper environment around BatchSIQR
 	
-	def __init__(self, stochastic=False, noisy=False):
+	def __init__(self, stochastic=False, noisy=False, problem_id=0):
 		"""
 		Mass-action SIQR epidemics model.
 		
 		Args:
 			stochastic (bool): Is the infection rate sampled from some distribution at the beginning of each episode (default: False)?
 			noisy (bool): Is the state a noisy estimate of the true state (default: False)?
+			problem_id (int): Deterministic parameterization of the epidemic (default: 0).
 		"""
+		assert(problem_id >= 0 and problem_id < 10)
 		self.is_stochastic = stochastic
 		self.is_noisy = noisy
+		self.problem_id = problem_id
 		
 		# action space is set of interventions on beta
 		self.actions = np.array([1, .0175, 0.5, 0.65]) # beta coeffs
 		self.action_space = gym.spaces.Discrete(self.actions.shape[0])
 		self.beta_bounds = [0.19, 0.56] # default infectivity
+		self.problems = [0.35, 0.19, 0.23, 0.27, 0.31, 0.40, 0.44, 0.48, 0.52, 0.56]
 		self.N = 6e8 # population size
 		self.I0= 2e4# initial infectious and recovereds
 		self.noise_level = 0.2 # weighted average of noisy observation and true state
@@ -33,10 +37,9 @@ class Epidemic(Agent):
 		
 	def reset(self):
 		self.steps = 0
+		self.beta = self.problems[self.problem_id]
 		if (self.is_stochastic):
 			self.beta = self.beta_bounds[0] + np.random.uniform() * self.beta_bounds[1]
-		else:
-			self.beta = (self.beta_bounds[1] + self.beta_bounds[0])/2
 		s = self.env.reset().reshape(-1)
 		return self._observe(s)
 		
