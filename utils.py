@@ -1,6 +1,37 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+def execute_policy(policy, env):
+    """Execute a policy
+    
+    :param policy a policy to run. A policy is a callable that takes a state as input and returns an array of probabilities of actions. If the policy returns a tuple the first element is taken.
+    :param env the environment to run (a correctly instantiated problem).
+    
+    :returns a tuple (states, rewards, action_taken)
+    """
+    s = env.reset()
+
+    states = [s]
+    rewards = []
+    action_taken = []
+    done = False
+
+    while not done:
+        s = states[-1]
+        action_probs = policy(s)
+        if type(action_probs) == tuple:
+            action_probs = action_probs[0]
+        action_id = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+
+        s, r, done, i = env.step(action=action_id)
+
+        states.append(s)
+        rewards.append(r)
+        action_taken.append(action_id)
+    
+    return states, rewards, action_taken
+
+        
 def plot(states, rewards, action_taken=None):
     """Plot the state/reward diagram after a policy is executed"""
     fig, axes = plt.subplots(1, 2, figsize=(20, 8))
