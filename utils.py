@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import virl
+
 
 def execute_policy(policy, env):
     """Execute a policy
@@ -63,3 +65,39 @@ def plot(states, rewards, action_taken=None, axes=None):
             axes[1].vlines(np.where(np.array(action_taken) == i), ymin = -0.050, ymax=0.00, colors=colors[i], linestyle='dashed')
 
     print('total reward', np.sum(rewards))
+    
+
+def evaluate(policy, full_eval=False, verbose=True, noisy=False):
+    """
+    Evaluate a policy
+    
+    :param policy a callable that, given in input a state, returns an action
+    :param full_eval whether to fully evaluate the policy on all the problems or the first problem only
+    :param verbose whether to get verbose output
+    :param noisy whether to simulate a noisy environment
+    """
+    trained_policy = create_policy(approximator_dl, 0, 4)
+    limit = 10 if full_eval else 1
+        
+    envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
+    
+    fig, axes = plt.subplots(limit, 2, figsize=(20, 8*limit))
+    
+    total_rewards = []
+    
+    for i, env in enumerate(envs):
+        states, rewards, action_taken = utils.execute_policy(trained_policy, env)
+        if verbose:
+            print(i, action_taken)
+        # small hack to change the first key from i to 0
+        if limit == 1:
+            axes_wrapper = [axes[0], axes[1]]
+        else:
+            axes_wrapper = axes[i]
+        utils.plot(states, rewards, action_taken, axes=axes_wrapper)
+        total_rewards.append(sum(rewards))
+    
+    if limit > 1:
+        _, ax = plt.subplots(1, 1, figsize=(10, 4))
+        ax.bar(np.arange(limit), total_rewards)
+        ax.set_xticks(np.arange(limit))
