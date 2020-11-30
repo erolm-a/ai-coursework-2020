@@ -35,7 +35,7 @@ def execute_policy(policy, env):
     return states, rewards, action_taken
 
 
-def plot(states, rewards, avg_episode_rewards, action_taken=None, axes=None, smoothing_window=5):
+def plot(states, rewards, avg_episode_rewards, action_taken=None, axes=None, smoothing_window=5, problem_id=0):
     """Plot the state/reward diagram after a policy is executed
 
     :param states the states to use
@@ -53,11 +53,12 @@ def plot(states, rewards, avg_episode_rewards, action_taken=None, axes=None, smo
     for i in range(4):
         axes[0, 0].plot(states[:,i], label=labels[i]);
 
+    axes[0, 0].set_title(f"Statistics of the epidemic for problem {problem_id}")
     axes[0, 0].set_xlabel('weeks since start of epidemic')
     axes[0, 0].set_ylabel('State s(t)')
     axes[0, 0].legend()
     axes[0, 1].plot(rewards);
-    axes[0, 1].set_title('Reward (for one run)')
+    axes[0, 1].set_title(f'Reward, total reward = {total_reward:.3f}')
     axes[0, 1].set_xlabel('weeks since start of epidemic')
     axes[0, 1].set_ylabel('reward r(t)')
 
@@ -68,14 +69,15 @@ def plot(states, rewards, avg_episode_rewards, action_taken=None, axes=None, smo
     axes[1, 0].set_xlabel('episode')
     axes[1, 0].set_ylabel('mean reward r(t)')
 
+
     if action_taken:
         colors = ['r', 'g', 'b', 'k']
         for i in range(4):
             axes[0, 1].vlines(np.where(np.array(action_taken) == i), ymin = np.max(np.min(rewards) -0.050), ymax=0.00, colors=colors[i], linestyle='dashed')
 
 
-    print('total reward', np.sum(rewards))
-    
+    print('total reward', total_reward)
+
 
 def evaluate(policy, full_eval=False, verbose=True, noisy=False):
     """
@@ -104,7 +106,7 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
             axes_wrapper = [axes[0], axes[1]]
         else:
             axes_wrapper = axes[i]
-        plot(states, rewards, action_taken, axes=axes_wrapper)
+        plot(states, rewards, action_taken, axes=axes_wrapper, problem_id=i)
         total_rewards.append(sum(rewards))
 
     if limit > 1:
