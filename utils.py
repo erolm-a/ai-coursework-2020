@@ -52,6 +52,8 @@ def plot(states, rewards, avg_episode_rewards, action_taken=None, axes=None, smo
     states = np.array(states)
     for i in range(4):
         axes[0, 0].plot(states[:,i], label=labels[i]);
+        
+    total_reward = np.sum(rewards)
 
     axes[0, 0].set_title(f"Statistics of the epidemic for problem {problem_id}")
     axes[0, 0].set_xlabel('weeks since start of epidemic')
