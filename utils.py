@@ -62,7 +62,7 @@ def plot(states, rewards, action_taken=None, axes=None):
     if action_taken:
         colors = ['r', 'g', 'b', 'k']
         for i in range(4):
-            axes[1].vlines(np.where(np.array(action_taken) == i), ymin = -0.050, ymax=0.00, colors=colors[i], linestyle='dashed')
+            axes[1].vlines(np.where(np.array(action_taken) == i), ymin = np.max(np.min(rewards) -0.050), ymax=0.00, colors=colors[i], linestyle='dashed')
 
     print('total reward', np.sum(rewards))
     
@@ -76,7 +76,7 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
     :param verbose whether to get verbose output
     :param noisy whether to simulate a noisy environment
     """
-    trained_policy = create_policy(approximator_dl, 0, 4)
+    #trained_policy = create_policy(approximator_dl, 0, 4)
     limit = 10 if full_eval else 1
         
     envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
@@ -86,7 +86,7 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
     total_rewards = []
     
     for i, env in enumerate(envs):
-        states, rewards, action_taken = utils.execute_policy(trained_policy, env)
+        states, rewards, action_taken = execute_policy(policy, env)
         if verbose:
             print(i, action_taken)
         # small hack to change the first key from i to 0
@@ -94,10 +94,32 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
             axes_wrapper = [axes[0], axes[1]]
         else:
             axes_wrapper = axes[i]
-        utils.plot(states, rewards, action_taken, axes=axes_wrapper)
+        plot(states, rewards, action_taken, axes=axes_wrapper)
         total_rewards.append(sum(rewards))
     
     if limit > 1:
         _, ax = plt.subplots(1, 1, figsize=(10, 4))
         ax.bar(np.arange(limit), total_rewards)
         ax.set_xticks(np.arange(limit))
+
+
+def evaluate_stochastic(policy, num_tries=10, noisy=True):
+    """
+    Evaluate a policy in a stochastic environment.
+    
+    horribly copied from generate_readme_plots.ipynb
+    
+    :param policy a callable that returns a probability distribution of probabilities
+    :param num_tries the number of tries to perform
+    
+    """
+    
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for i in range(num_tries):
+        env = virl.Epidemic(stochastic=True, noisy=noisy)
+        states, rewards, actions_taken = execute_policy(policy, env)
+        ax.plot(np.array(states)[:,1], label=f'draw {i}')
+    ax.set_xlabel('weeks since start of epidemic')
+    ax.set_ylabel('Number of Infectious persons')
+    ax.set_title(f'Simulation of {num_tries} stochastic episodes without intervention')
+    ax.legend()
