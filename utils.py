@@ -112,7 +112,27 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
         _, ax = plt.subplots(1, 1, figsize=(10, 4))
         ax.bar(np.arange(limit), total_rewards)
         ax.set_xticks(np.arange(limit))
+        return total_rewards
 
+def latex_table(array, row_labels, include_means=False):
+    def to_str(f):
+        return str(round(float(f), 2))
+    table_str = ""
+    best_cols = np.argmin(np.array(array), axis=0)
+    means = np.mean(np.array(array), axis=1)
+    max_mean_index = np.argmin(means)
+    for i, row in enumerate(array):
+        row_str = f"{row_labels[i]}"
+        for j, el in enumerate(row):
+            if i == best_cols[j]:
+                row_str += " & \\textbf{" + to_str(el) + "}"
+                continue
+            row_str += " & " + to_str(el)
+        if include_means:
+            table_str += row_str + " & " + (to_str(means[i]) if i != max_mean_index else "\\textbf{\\underline{" + to_str(means[i]) + "}}") + "\\\ \n"
+            continue
+        table_str += row_str + "\\\ \n"
+    return table_str
 
 def evaluate_stochastic(policy, num_tries=10, noisy=True):
     """
