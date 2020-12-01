@@ -75,10 +75,10 @@ def plot(states, rewards, action_taken=None, axes=None, problem_id=0):
         for i in range(4):
             axes[1].vlines(np.where(np.array(action_taken) == i), ymin = np.max(np.min(rewards) -0.050), ymax=0.00, colors=colors[i], linestyle='dashed')
 
-    print('total reward', total_reward)
+    # print('total reward', total_reward)
 
 
-def evaluate(policy, full_eval=False, verbose=True, noisy=False):
+def evaluate(policy, problem_id=0, full_eval=False, verbose=True, noisy=False):
     """
     Evaluate a policy
 
@@ -88,15 +88,19 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
     :param noisy whether to simulate a noisy environment
     """
     #trained_policy = create_policy(approximator_dl, 0, 4)
-    limit = 10 if full_eval else 1
-
-    envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
+    
+    if not full_eval:
+        limit = 1
+        envs = [virl.Epidemic(problem_id=problem_id, noisy=noisy)]
+    else:
+        limit = 10
+        envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
 
     fig, axes = plt.subplots(limit, 2, figsize=(20, 8*limit))
 
     total_rewards = []
 
-    for i, env in enumerate(envs):
+    for i, env in enumerate(envs, start=problem_id):
         states, rewards, action_taken = execute_policy(policy, env)
         if verbose:
             print(i, action_taken)
