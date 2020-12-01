@@ -112,7 +112,11 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
         _, ax = plt.subplots(1, 1, figsize=(10, 4))
         ax.bar(np.arange(limit), total_rewards)
         ax.set_xticks(np.arange(limit))
+        return total_rewards
 
+def latex_table(array):
+    for row in array:
+        print(f"{' & '.join([str(round(float(el), 2)) for el in row])} \\\ ")
 
 def evaluate_stochastic(policy, num_tries=10, noisy=True):
     """
