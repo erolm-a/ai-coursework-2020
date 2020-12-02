@@ -158,3 +158,34 @@ def evaluate_stochastic(policy, num_tries=10, noisy=True):
     ax.set_ylabel('Number of Infectious persons')
     ax.set_title(f'Simulation of {num_tries} stochastic episodes without intervention')
     ax.legend()
+
+
+def policy_greedy(state):
+    def eval_reward(state, action):
+        policy_severity_factor = 1e11
+        a = state[1] + state[2]
+        b = (1 - action)
+
+        expected_a = a*(1 + action - 0.1)
+        val = (-expected_a - expected_a ** 2 - policy_severity_factor*b - policy_severity_factor*b**2) / policy_severity_factor
+
+        return val
+
+    env = virl.Epidemic()
+    
+    greedy_rewards = np.array([eval_reward(state, a) for a in env.actions])
+    action_id = np.argmax(greedy_rewards)
+    
+    action_proba = [0.0] * 4
+    action_proba[action_id] = 1.0
+    
+    return action_proba
+
+def compare_with_greedy(policy, env):
+    """
+    Simple regret policy.
+    """
+    _, policy_rewards, __ = execute_policy(policy, env)
+    _, pseudooptimal_rewards, __ = execute_policy(policy_greedy, env)
+    
+    return np.sum(policy_rewards) - np.sum(pseudooptimal_rewards)
