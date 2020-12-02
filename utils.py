@@ -33,6 +33,7 @@ def execute_policy(policy, env):
 
     return states, rewards, action_taken
 
+
 def plot_avg_reward(avg_episode_rewards, smoothing_window=5):
     avg_episode_rewards = np.array(avg_episode_rewards)
     smoothed = np.convolve(avg_episode_rewards, np.ones(smoothing_window)/smoothing_window, mode='valid')
@@ -42,6 +43,7 @@ def plot_avg_reward(avg_episode_rewards, smoothing_window=5):
     ax.set_title('Reward per episode')
     ax.set_xlabel('episode')
     ax.set_ylabel('mean reward r(t)')
+
 
 def plot(states, rewards, action_taken=None, axes=None, problem_id=0):
     """Plot the state/reward diagram after a policy is executed
@@ -118,7 +120,8 @@ def evaluate(policy, problem_id=0, full_eval=False, verbose=True, noisy=False):
         ax.set_xticks(np.arange(limit))
         return total_rewards
 
-def latex_table(array, row_labels, include_means=False):
+    
+def latex_table(array, row_labels, include_means=False) -> str:
     def to_str(f):
         return str(round(float(f), 2))
     table_str = ""
@@ -137,6 +140,7 @@ def latex_table(array, row_labels, include_means=False):
             continue
         table_str += row_str + "\\\ \n"
     return table_str
+
 
 def evaluate_stochastic(policy, num_tries=10, noisy=True):
     """
@@ -160,7 +164,7 @@ def evaluate_stochastic(policy, num_tries=10, noisy=True):
     ax.legend()
 
 
-def policy_greedy(state):
+def policy_greedy(state) -> np.array:
     def eval_reward(state, action):
         policy_severity_factor = 1e11
         a = state[1] + state[2]
@@ -181,11 +185,22 @@ def policy_greedy(state):
     
     return action_proba
 
-def compare_with_greedy(policy, env):
+
+def regret_metric(policy, env: virl.Epidemic, optimal=policy_greedy) -> float:
     """
-    Simple regret policy.
+    Simple regret metric. The regret is defined as the difference between the total rewards of a given policy and of the "best" policy.
+    
+    
+    :param policy a callable that wraps a policy
+    :param optimal a callable that wraps the optimal policy. We assume it being the greedy policy on (almost) all the problems.
+    :env an environment to evaluate upon
+    
+    :returns a pair of floats: absolute regret and relative regret
+              (i.e. the ratio between absolute regret and the cumultaed reward of the optimal policy)
     """
     _, policy_rewards, __ = execute_policy(policy, env)
-    _, pseudooptimal_rewards, __ = execute_policy(policy_greedy, env)
+    _, pseudooptimal_rewards, __ = execute_policy(optimal, env)
     
-    return np.sum(policy_rewards) - np.sum(pseudooptimal_rewards)
+    diff = np.sum(policy_rewards) - np.sum(pseudooptimal_rewards)
+    return diff, - diff / np.sum(pseudooptimal_rewards)
+    
