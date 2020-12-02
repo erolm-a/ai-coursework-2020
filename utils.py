@@ -33,6 +33,7 @@ def execute_policy(policy, env):
 
     return states, rewards, action_taken
 
+
 def plot_avg_reward(avg_episode_rewards, smoothing_window=5):
     avg_episode_rewards = np.array(avg_episode_rewards)
     smoothed = np.convolve(avg_episode_rewards, np.ones(smoothing_window)/smoothing_window, mode='valid')
@@ -42,6 +43,7 @@ def plot_avg_reward(avg_episode_rewards, smoothing_window=5):
     ax.set_title('Reward per episode')
     ax.set_xlabel('episode')
     ax.set_ylabel('mean reward r(t)')
+
 
 def plot(states, rewards, action_taken=None, axes=None, problem_id=0):
     """Plot the state/reward diagram after a policy is executed
@@ -75,10 +77,10 @@ def plot(states, rewards, action_taken=None, axes=None, problem_id=0):
         for i in range(4):
             axes[1].vlines(np.where(np.array(action_taken) == i), ymin = np.max(np.min(rewards) -0.050), ymax=0.00, colors=colors[i], linestyle='dashed')
 
-    print('total reward', total_reward)
+    # print('total reward', total_reward)
 
 
-def evaluate(policy, full_eval=False, verbose=True, noisy=False):
+def evaluate(policy, problem_id=0, full_eval=False, verbose=True, noisy=False):
     """
     Evaluate a policy
 
@@ -88,15 +90,19 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
     :param noisy whether to simulate a noisy environment
     """
     #trained_policy = create_policy(approximator_dl, 0, 4)
-    limit = 10 if full_eval else 1
-
-    envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
+    
+    if not full_eval:
+        limit = 1
+        envs = [virl.Epidemic(problem_id=problem_id, noisy=noisy)]
+    else:
+        limit = 10
+        envs = [virl.Epidemic(problem_id=i, noisy=noisy) for i in range(limit)]
 
     fig, axes = plt.subplots(limit, 2, figsize=(20, 8*limit))
 
     total_rewards = []
 
-    for i, env in enumerate(envs):
+    for i, env in enumerate(envs, start=problem_id):
         states, rewards, action_taken = execute_policy(policy, env)
         if verbose:
             print(i, action_taken)
@@ -114,7 +120,8 @@ def evaluate(policy, full_eval=False, verbose=True, noisy=False):
         ax.set_xticks(np.arange(limit))
         return total_rewards
 
-def latex_table(array, row_labels, include_means=False):
+    
+def latex_table(array, row_labels, include_means=False) -> str:
     def to_str(f):
         return str(round(float(f), 2))
     table_str = ""
@@ -133,6 +140,7 @@ def latex_table(array, row_labels, include_means=False):
             continue
         table_str += row_str + "\\\ \n"
     return table_str
+
 
 def evaluate_stochastic(policy, num_tries=10, noisy=True):
     """
@@ -154,3 +162,45 @@ def evaluate_stochastic(policy, num_tries=10, noisy=True):
     ax.set_ylabel('Number of Infectious persons')
     ax.set_title(f'Simulation of {num_tries} stochastic episodes without intervention')
     ax.legend()
+
+
+def policy_greedy(state) -> np.array:
+    def eval_reward(state, action):
+        policy_severity_factor = 1e11
+        a = state[1] + state[2]
+        b = (1 - action)
+
+        expected_a = a*(1 + action - 0.1)
+        val = (-expected_a - expected_a ** 2 - policy_severity_factor*b - policy_severity_factor*b**2) / policy_severity_factor
+
+        return val
+
+    env = virl.Epidemic()
+    
+    greedy_rewards = np.array([eval_reward(state, a) for a in env.actions])
+    action_id = np.argmax(greedy_rewards)
+    
+    action_proba = [0.0] * 4
+    action_proba[action_id] = 1.0
+    
+    return action_proba
+
+
+def regret_metric(policy, env: virl.Epidemic, optimal=policy_greedy) -> float:
+    """
+    Simple regret metric. The regret is defined as the difference between the total rewards of a given policy and of the "best" policy.
+    
+    
+    :param policy a callable that wraps a policy
+    :param optimal a callable that wraps the optimal policy. We assume it being the greedy policy on (almost) all the problems.
+    :env an environment to evaluate upon
+    
+    :returns a pair of floats: absolute regret and relative regret
+              (i.e. the ratio between absolute regret and the cumultaed reward of the optimal policy)
+    """
+    _, policy_rewards, __ = execute_policy(policy, env)
+    _, pseudooptimal_rewards, __ = execute_policy(optimal, env)
+    
+    diff = np.sum(policy_rewards) - np.sum(pseudooptimal_rewards)
+    return diff, - diff / np.sum(pseudooptimal_rewards)
+    
