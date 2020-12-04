@@ -1,3 +1,14 @@
+# Artificial Intelligence Assessed Exercice 2020-2021, Group 1
+
+Members:
+
+- Enrico Trombetta (2396702t)
+- Mitchell Jolly (2323872j)
+- Fahad Hafiz (2314120h)
+- Charles Varley (2391564v)
+
+---
+
 # ViRL
 
 ViRL is an Epidemics Reinforcement Learning Environment. Agents are tasked with controlling the spread of a virus with one of four non-medical policy interventions: 
